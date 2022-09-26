@@ -1,7 +1,7 @@
-package com.rrat.distancetrackerapp
+package com.rrat.distancetrackerapp.ui.map
 
 import android.annotation.SuppressLint
-import android.location.Location
+import android.content.Intent
 import androidx.fragment.app.Fragment
 
 import android.os.Bundle
@@ -9,17 +9,16 @@ import android.os.CountDownTimer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 
-import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import com.rrat.distancetrackerapp.R
 import com.rrat.distancetrackerapp.databinding.FragmentMapsBinding
+import com.rrat.distancetrackerapp.service.TrackerService
+import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_START
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.disable
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.hide
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.show
@@ -28,6 +27,8 @@ import com.vmadalin.easypermissions.EasyPermissions
 import com.vmadalin.easypermissions.dialogs.SettingsDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+
 
 class MapsFragment : Fragment(),
     OnMapReadyCallback,
@@ -81,19 +82,34 @@ class MapsFragment : Fragment(),
                 val currentSecond = millisUntilFinished / 1000
                 if(currentSecond.toString() == "0"){
                     binding.timerTv.text = getString(R.string.go)
-                    binding.timerTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
+                    binding.timerTv.setTextColor(ContextCompat.getColor(requireContext(),
+                        R.color.black
+                    ))
                 }else{
                     binding.timerTv.text = currentSecond.toString()
-                    binding.timerTv.setTextColor(ContextCompat.getColor(requireContext(), R.color.red))
+                    binding.timerTv.setTextColor(ContextCompat.getColor(requireContext(),
+                        R.color.red
+                    ))
                 }
             }
 
             override fun onFinish() {
+                sendActionCommandToService(ACTION_SERVICE_START)
                 binding.timerTv.hide()
             }
 
         }
         timer.start()
+    }
+
+    private fun sendActionCommandToService(action: String){
+        Intent(
+            requireContext(),
+            TrackerService::class.java
+        ).apply {
+            this.action = action
+            requireContext().startService(this)
+        }
     }
 
     override fun onRequestPermissionsResult(

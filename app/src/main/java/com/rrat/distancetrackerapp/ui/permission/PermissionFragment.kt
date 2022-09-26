@@ -1,4 +1,4 @@
-package com.rrat.distancetrackerapp
+package com.rrat.distancetrackerapp.ui.permission
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.fragment.findNavController
+import com.rrat.distancetrackerapp.R
 import com.rrat.distancetrackerapp.utils.Permissions.hasLocationPermission
 import com.rrat.distancetrackerapp.utils.Permissions.requestLocationPermission
 import com.rrat.distancetrackerapp.databinding.FragmentPermissionBinding

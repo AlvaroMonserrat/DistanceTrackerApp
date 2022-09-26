@@ -21,7 +21,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:context=".MapsFragment" />
+            tools:context=".ui.map.MapsFragment" />
 
         <TextView
             android:id="@+id/timer_tv"
