@@ -2,24 +2,33 @@ package com.rrat.distancetrackerapp.ui.map
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Color
 import androidx.fragment.app.Fragment
 
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.maps.CameraUpdateFactory
 
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.ButtCap
+import com.google.android.gms.maps.model.JointType
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.PolylineOptions
 import com.rrat.distancetrackerapp.R
 import com.rrat.distancetrackerapp.databinding.FragmentMapsBinding
 import com.rrat.distancetrackerapp.service.TrackerService
 import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_START
+import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_STOP
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.disable
+import com.rrat.distancetrackerapp.utils.ExtensionFunctions.enabled
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.hide
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.show
 import com.rrat.distancetrackerapp.utils.Permissions
@@ -42,6 +51,11 @@ class MapsFragment : Fragment(),
 
     private lateinit var map: GoogleMap
 
+    private var startTime = 0L
+    private var stopTime = 0L
+
+    private var locationList = mutableListOf<LatLng>()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -54,7 +68,7 @@ class MapsFragment : Fragment(),
             onStartButtonClicked()
         }
         binding.stopButton.setOnClickListener {
-
+            onStopButtonClicked()
         }
         binding.resetButton.setOnClickListener {
 
@@ -62,6 +76,14 @@ class MapsFragment : Fragment(),
 
         return binding.root
     }
+
+    private fun onStopButtonClicked() {
+        stopForegroundService()
+        binding.stopButton.hide()
+        binding.startButton.show()
+    }
+
+
 
     private fun onStartButtonClicked() {
         if(Permissions.hasBackgroundLocationPermission(requireContext())){
@@ -100,6 +122,11 @@ class MapsFragment : Fragment(),
 
         }
         timer.start()
+    }
+
+    private fun stopForegroundService() {
+        binding.startButton.disable()
+        sendActionCommandToService(ACTION_SERVICE_STOP)
     }
 
     private fun sendActionCommandToService(action: String){
@@ -151,6 +178,49 @@ class MapsFragment : Fragment(),
             isTiltGesturesEnabled = false
             isCompassEnabled = false
             isScrollGesturesEnabled = false
+        }
+
+        observerTrackerService()
+    }
+
+    private fun observerTrackerService(){
+        TrackerService.locationList.observe(viewLifecycleOwner) {
+            if (it != null) {
+                locationList = it
+                if(locationList.size > 1){
+                    binding.stopButton.enabled()
+                }
+                drawPolyline()
+                followPolyline()
+            }
+        }
+        TrackerService.startTime.observe(viewLifecycleOwner){
+            startTime = it
+        }
+
+        TrackerService.stopTime.observe(viewLifecycleOwner){
+            stopTime = it
+        }
+    }
+
+    private fun drawPolyline(){
+        val polyline = map.addPolyline(
+            PolylineOptions().apply {
+                width(10f)
+                color(Color.BLUE)
+                jointType(JointType.ROUND)
+                startCap(ButtCap())
+                endCap(ButtCap())
+                addAll(locationList)
+            }
+        )
+    }
+
+    private fun followPolyline(){
+        if(locationList.isNotEmpty()){
+            map.animateCamera((CameraUpdateFactory.newCameraPosition(
+                MapUtil.setCameraPosition(locationList.last())
+            )), 1000, null)
         }
     }
 
