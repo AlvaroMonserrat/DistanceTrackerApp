@@ -5,7 +5,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-
+        <variable
+            name="tracking"
+            type="com.rrat.distancetrackerapp.ui.map.MapsFragment" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -46,6 +48,7 @@
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold"
+            observeTracking="@{tracking.started}"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -65,6 +68,7 @@
 
         <Button
             android:id="@+id/stop_button"
+            observeTracking="@{tracking.started}"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"

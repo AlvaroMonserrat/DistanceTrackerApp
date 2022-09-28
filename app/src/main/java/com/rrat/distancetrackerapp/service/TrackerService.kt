@@ -17,6 +17,7 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.model.LatLng
+import com.rrat.distancetrackerapp.ui.map.MapUtil
 import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_START
 import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_STOP
 import com.rrat.distancetrackerapp.utils.Constants.LOCATION_FASTEST_UPDATE_INTERVAL
@@ -60,10 +61,12 @@ class TrackerService : LifecycleService() {
                 locations->
                 for(location in locations){
                     updateLocationList(location)
+                    updateNotificationPeriodically()
                 }
             }
         }
     }
+
 
     private fun updateLocationList(location: Location){
         val newLatLng = LatLng(location.latitude, location.longitude)
@@ -146,6 +149,14 @@ class TrackerService : LifecycleService() {
             )
             notificationManager.createNotificationChannel(channel)
         }
+    }
+
+    private fun updateNotificationPeriodically() {
+        notification.apply {
+            setContentTitle("Distance Travelled")
+            setContentText(locationList.value?.let { MapUtil.calculateTheDistance(locationList = it) } + "km")
+        }
+        notificationManager.notify(NOTIFICATION_ID, notification.build())
     }
 
     override fun onDestroy() {

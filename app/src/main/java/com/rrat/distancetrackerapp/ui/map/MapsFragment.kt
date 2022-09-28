@@ -12,19 +12,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import com.google.android.gms.maps.CameraUpdateFactory
 
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.ButtCap
-import com.google.android.gms.maps.model.JointType
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.*
 import com.rrat.distancetrackerapp.R
 import com.rrat.distancetrackerapp.databinding.FragmentMapsBinding
+import com.rrat.distancetrackerapp.model.Result
 import com.rrat.distancetrackerapp.service.TrackerService
+import com.rrat.distancetrackerapp.ui.map.MapUtil.calculateElapsedTime
+import com.rrat.distancetrackerapp.ui.map.MapUtil.calculateTheDistance
 import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_START
 import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_STOP
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.disable
@@ -36,7 +38,7 @@ import com.vmadalin.easypermissions.EasyPermissions
 import com.vmadalin.easypermissions.dialogs.SettingsDialog
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
+import java.lang.Compiler.enable
 
 
 class MapsFragment : Fragment(),
@@ -51,6 +53,8 @@ class MapsFragment : Fragment(),
 
     private lateinit var map: GoogleMap
 
+    val started = MutableLiveData(false)
+
     private var startTime = 0L
     private var stopTime = 0L
 
@@ -63,6 +67,9 @@ class MapsFragment : Fragment(),
     ): View {
 
         _binding = FragmentMapsBinding.inflate(inflater, container, false)
+
+        binding.lifecycleOwner = this
+        binding.tracking = this
 
         binding.startButton.setOnClickListener {
             onStartButtonClicked()
@@ -194,12 +201,50 @@ class MapsFragment : Fragment(),
                 followPolyline()
             }
         }
+        TrackerService.started.observe(viewLifecycleOwner){
+            started.value = it
+        }
+
         TrackerService.startTime.observe(viewLifecycleOwner){
             startTime = it
         }
 
         TrackerService.stopTime.observe(viewLifecycleOwner){
             stopTime = it
+            if(stopTime != 0L){
+                showBiggerPicture()
+                displayResult()
+            }
+        }
+    }
+
+    private fun showBiggerPicture() {
+        val bounds = LatLngBounds.Builder()
+        for(location in locationList){
+            bounds.include(location)
+        }
+        map.animateCamera(
+            CameraUpdateFactory.newLatLngBounds(
+                bounds.build(), 100
+            ), 2000, null
+        )
+    }
+
+    private fun displayResult(){
+        val result = Result(
+            calculateTheDistance(locationList),
+            calculateElapsedTime(startTime, stopTime)
+        )
+        lifecycleScope.launch {
+            delay(2500)
+            val directions = MapsFragmentDirections.actionMapsFragmentToResultFragment(result)
+            findNavController().navigate(directions)
+            binding.startButton.apply {
+                hide()
+                enable()
+            }
+            binding.stopButton.hide()
+            binding.resetButton.show()
         }
     }
 
