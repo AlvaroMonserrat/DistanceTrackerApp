@@ -15,6 +15,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 
 import com.google.android.gms.maps.GoogleMap
@@ -27,6 +29,7 @@ import com.rrat.distancetrackerapp.model.Result
 import com.rrat.distancetrackerapp.service.TrackerService
 import com.rrat.distancetrackerapp.ui.map.MapUtil.calculateElapsedTime
 import com.rrat.distancetrackerapp.ui.map.MapUtil.calculateTheDistance
+import com.rrat.distancetrackerapp.ui.map.MapUtil.setCameraPosition
 import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_START
 import com.rrat.distancetrackerapp.utils.Constants.ACTION_SERVICE_STOP
 import com.rrat.distancetrackerapp.utils.ExtensionFunctions.disable
@@ -59,6 +62,9 @@ class MapsFragment : Fragment(),
     private var stopTime = 0L
 
     private var locationList = mutableListOf<LatLng>()
+    private var polylineList = mutableListOf<Polyline>()
+
+    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -78,11 +84,15 @@ class MapsFragment : Fragment(),
             onStopButtonClicked()
         }
         binding.resetButton.setOnClickListener {
-
+            onResetButtonClicked()
         }
+
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity())
 
         return binding.root
     }
+
+
 
     private fun onStopButtonClicked() {
         stopForegroundService()
@@ -90,6 +100,9 @@ class MapsFragment : Fragment(),
         binding.startButton.show()
     }
 
+    private fun onResetButtonClicked() {
+        mapReset()
+    }
 
 
     private fun onStartButtonClicked() {
@@ -248,6 +261,26 @@ class MapsFragment : Fragment(),
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun mapReset() {
+        fusedLocationProviderClient.lastLocation.addOnCompleteListener {
+            val lastKnownLocation = LatLng(it.result.latitude, it.result.longitude)
+            for (polyline in polylineList){
+                polyline.remove()
+            }
+
+            map.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    setCameraPosition(lastKnownLocation)
+                )
+            )
+            locationList.clear()
+            binding.resetButton.hide()
+            binding.startButton.show()
+        }
+    }
+
+
     private fun drawPolyline(){
         val polyline = map.addPolyline(
             PolylineOptions().apply {
@@ -259,6 +292,7 @@ class MapsFragment : Fragment(),
                 addAll(locationList)
             }
         )
+        polylineList.add(polyline)
     }
 
     private fun followPolyline(){
